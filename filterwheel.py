@@ -272,8 +272,6 @@ class FilterWheel():
         FPI/Observatory and move the filter wheel accordingly.
         '''
         
-
-    
         while(True):
 
             # Read the input pins
@@ -287,6 +285,19 @@ class FilterWheel():
 
             # If the desired position is far from the actual position, initiate a move
             if abs(desired_pos - self.pos) > 5:
+                # However, we want to wait a little bit to give the user a chance to change both pins,
+                # since they might not happen exactly simultaneously
+                time.sleep(0.5)
+                
+                # Read again
+                filt = self.read_commanded_filter()
+
+                # Determine the desired position (in steps)
+                desired_pos = [self.filter0_pos,
+                               self.filter1_pos,
+                               self.filter2_pos,
+                               self.filter3_pos][filt]
+                
                 self.goto(desired_pos)
                 
             time.sleep(0.05)
