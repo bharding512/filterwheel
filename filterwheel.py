@@ -287,6 +287,10 @@ class FilterWheel():
             if abs(desired_pos - self.pos) > 5:
                 # However, we want to wait a little bit to give the user a chance to change both pins,
                 # since they might not happen exactly simultaneously
+                
+                # Label as busy while we're giving time
+                GPIO.output(self.pin_out, self.BUSY)
+                
                 time.sleep(0.5)
                 
                 # Read again
