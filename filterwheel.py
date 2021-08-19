@@ -4,6 +4,20 @@
 # Brian J. Harding Feb 2021
 
 
+####### PARAMETERS ########
+# Specify MODE = 'active' or 0, 1, 2, or 3. If 'active', the filterwheel will listen for inputs and move the wheel
+# accordingly. If an int, it will go to that filter position and stay there, regardless of
+# inputs, and output READY. (This latter mode is intended as a stopgap measure. If single-filter
+# mode is desired for a long period of time, the pi/motor should be shut off and the filter wheel
+# should be mechanically parked, so as to avoid motor wear and tear).
+MODE = 'active'
+# MODE = 1 # 1 = green
+# MODE = 2 # 2 = red
+
+###########################
+
+
+
 import RPi.GPIO as GPIO
 from adafruit_motorkit import MotorKit
 from adafruit_motor import stepper # Allows for defined constants
@@ -266,34 +280,23 @@ class FilterWheel():
         GPIO.output(self.pin_out, GPIO.LOW)
         
         
-    def run(self):
+    def run(self, mode='active'):
         '''
         An infinite loop that implements the operation of the filter wheel. Listen for inputs from
         FPI/Observatory and move the filter wheel accordingly.
+
+        mode: 'active' or int. If 'active', the filterwheel will listen for inputs and move the wheel
+              accordingly. If an int, it will go to that filter position and stay there, regardless of
+              inputs, and output READY. (This latter mode is intended as a stopgap measure. If single-filter
+              mode is desired for a long period of time, the pi/motor should be shut off and the filter wheel
+              should be mechanically parked, so as to avoid motor wear and tear).
         '''
-        
-        while(True):
 
-            # Read the input pins
-            filt = self.read_commanded_filter()
+        #################################################
+        if mode == 'active':
+            while(True):
 
-            # Determine the desired position (in steps)
-            desired_pos = [self.filter0_pos,
-                           self.filter1_pos,
-                           self.filter2_pos,
-                           self.filter3_pos][filt]
-
-            # If the desired position is far from the actual position, initiate a move
-            if abs(desired_pos - self.pos) > 5:
-                # However, we want to wait a little bit to give the user a chance to change both pins,
-                # since they might not happen exactly simultaneously
-                
-                # Label as busy while we're giving time
-                GPIO.output(self.pin_out, self.BUSY)
-                
-                time.sleep(0.5)
-                
-                # Read again
+                # Read the input pins
                 filt = self.read_commanded_filter()
 
                 # Determine the desired position (in steps)
@@ -301,12 +304,44 @@ class FilterWheel():
                                self.filter1_pos,
                                self.filter2_pos,
                                self.filter3_pos][filt]
-                
-                self.goto(desired_pos)
-                
-            time.sleep(0.05)
-                
 
+                # If the desired position is far from the actual position, initiate a move
+                if abs(desired_pos - self.pos) > 5:
+                    # However, we want to wait a little bit to give the user a chance to change both pins,
+                    # since they might not happen exactly simultaneously
+                    
+                    # Label as busy while we're giving time
+                    GPIO.output(self.pin_out, self.BUSY)
+                    
+                    time.sleep(0.5)
+                    
+                    # Read again
+                    filt = self.read_commanded_filter()
+
+                    # Determine the desired position (in steps)
+                    desired_pos = [self.filter0_pos,
+                                   self.filter1_pos,
+                                   self.filter2_pos,
+                                   self.filter3_pos][filt]
+                    
+                    self.goto(desired_pos)
+                    
+                time.sleep(0.05)
+                
+        #################################################
+        else: # mode is presumably an int
+            # No infinite loop. Run once and terminate.
+                        
+            desired_pos = [self.filter0_pos,
+                           self.filter1_pos,
+                           self.filter2_pos,
+                           self.filter3_pos][mode]
+            
+            self.goto(desired_pos)
+            
+            # Label as permanently ready
+            GPIO.output(self.pin_out, self.STABLE)
+                
             
             
 # The main script   
@@ -317,7 +352,7 @@ if __name__ == '__main__':
         print('Homing...')
         fw.home()  
         print('Running main program...')
-        fw.run()    
+        fw.run(mode=MODE)    
 
     except Exception as e:
 
