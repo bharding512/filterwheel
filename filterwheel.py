@@ -232,8 +232,8 @@ class FilterWheel():
                     
         This does not issue STABLE/BUSY outputs. That needs to be handled by the caller.
         '''
-        if VERBOSE:
-            print('Request to move motor %i steps' % steps)
+        #if VERBOSE:
+        #    print('Request to move motor %i steps' % steps)
         # Move
         self.motor.go(steps)
         
