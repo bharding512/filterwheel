@@ -123,8 +123,8 @@ class Motor():
         For the OMC StepperOnline 17HS13-0404S-PG5 motor, 1 complete revolution is 1036.36 steps
         '''
         
-        if VERBOSE:
-            print('    Motor moving %i steps...' % (steps))
+        #if VERBOSE:
+        #    print('    Motor moving %i steps...' % (steps))
             
         if steps >= 0:
             direction = stepper.FORWARD
@@ -134,8 +134,8 @@ class Motor():
         for n in range(abs(steps)):
             self.motor.onestep(direction=direction, style=self.step_style)
             time.sleep(self.pause_between_steps)
-        if VERBOSE:
-            print('    ...Complete.')
+        #if VERBOSE:
+        #    print('    ...Complete.')
         
         
     def shutdown(self):
@@ -296,6 +296,9 @@ class FilterWheel():
         
         # Label as ready
         GPIO.output(self.pin_out, self.STABLE)
+
+        if VERBOSE:
+            print('At position %i' % pos)
         
         
     def read_commanded_filter(self):
@@ -304,8 +307,8 @@ class FilterWheel():
         '''
         p0, p1 = GPIO.input(self.pin_in0), GPIO.input(self.pin_in1)
         filt = 2*p1 + 1*p0 # convert from binary
-        if VERBOSE:
-            print('Read filter request: filter %i ' % filt)
+        #if VERBOSE:
+        #    print('Read filter request: filter %i ' % filt)
         
         return filt
         
@@ -357,6 +360,9 @@ class FilterWheel():
                     # Read again
                     filt = self.read_commanded_filter()
 
+                    if VERBOSE:
+                        print('Detected request to move to filter %i' % filt)
+
                     # Determine the desired position (in steps)
                     desired_pos = [self.filter0_pos,
                                    self.filter1_pos,
@@ -395,7 +401,6 @@ if __name__ == '__main__':
     fw = FilterWheel()
 
     try:
-        print('Homing...')
         fw.home()  
         print('Running main program...')
         fw.run(mode=MODE)    
