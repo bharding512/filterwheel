@@ -13,6 +13,7 @@
 MODE = 'active'
 # MODE = 1 # 1 = green
 # MODE = 2 # 2 = red
+VERBOSE = True # If True, print a bunch of debugging information.
 
 ###########################
 
@@ -40,6 +41,8 @@ class HallEffectSensor():
                  These use the GPIO ## numbering, not the raw sequential numbering.
                  The white wire should be connected to ground.
         '''
+        if VERBOSE:
+            print('    Initializing hall effect sensor...')
         GPIO.setmode(GPIO.BCM) # This lets us use the GPIO## notation, not the physical pin number
         # Set for inputs and pull ups
         
@@ -48,6 +51,8 @@ class HallEffectSensor():
         
         GPIO.setup(pin0, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(pin1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if VERBOSE:
+            print('    ... Complete.')
         
     def read(self):
         '''
@@ -58,12 +63,16 @@ class HallEffectSensor():
         low. If this isn't the case, an Exception will be thrown as there's likely a fatal problem.
         '''
         p0, p1 = GPIO.input(self.pin0), GPIO.input(self.pin1)
+        if VERBOSE:
+            print('    Read hall effect sensor  p0=%i  p1=%i' % (p0, p1))
         
         # If there is a problem (i.e., if both are low or both are high), try again a few times
         Ntries = 0
         while ((p0 == p1) & (Ntries < 10)):
             p0, p1 = GPIO.input(self.pin0), GPIO.input(self.pin1)
             Ntries += 1
+            if VERBOSE:
+                print('    Re-read hall effect sensor due to error  p0=%i  p1=%i' % (p0, p1))
         
         if Ntries > 10:
             raise Exception("Both Hall Effect sensor pins are %s. This probably indicates an electrical or software problem." % p0)
@@ -91,6 +100,9 @@ class Motor():
                       DOUBLE is the default since it seems smoothest, although it needs more power and runs hot.
         '''
         
+        if VERBOSE:
+            print('    Initializing motor')
+            
         self.pause_between_steps = pause_between_steps
         self.step_style = step_style
         
@@ -110,6 +122,10 @@ class Motor():
         
         For the OMC StepperOnline 17HS13-0404S-PG5 motor, 1 complete revolution is 1036.36 steps
         '''
+        
+        if VERBOSE:
+            print('    Motor moving %i steps...' % (steps))
+            
         if steps >= 0:
             direction = stepper.FORWARD
         else:
@@ -118,6 +134,8 @@ class Motor():
         for n in range(abs(steps)):
             self.motor.onestep(direction=direction, style=self.step_style)
             time.sleep(self.pause_between_steps)
+        if VERBOSE:
+            print('    ...Complete.')
         
         
     def shutdown(self):
@@ -125,6 +143,8 @@ class Motor():
         Release the motor so it isn't using power. It can freely rotate.
         '''
         self.motor.release()
+        if VERBOSE:
+            print('    Motor shut down')
     
         
     def back_and_forth_test(self):
@@ -150,6 +170,8 @@ class FilterWheel():
     '''
     
     def __init__(self):
+        if VERBOSE:
+            print('Begin FilterWheel initialization.')
         
         ######## Parameters #########
         self.pin_in0 = 27 # Which GPIO pin is bit 0 of the "desired filter" input from FPI/Observatory
@@ -196,6 +218,9 @@ class FilterWheel():
     
         # Done and ready
         GPIO.output(self.pin_out, self.STABLE)
+        
+        if VERBOSE:
+            print('End FilterWheel initialization.')
     
     def go(self, steps):
         '''
@@ -207,6 +232,8 @@ class FilterWheel():
                     
         This does not issue STABLE/BUSY outputs. That needs to be handled by the caller.
         '''
+        if VERBOSE:
+            print('Request to move motor %i steps' % steps)
         # Move
         self.motor.go(steps)
         
@@ -220,6 +247,9 @@ class FilterWheel():
         '''
         Perform the homing routine to set the 0-position. This issues STABLE/BUSY outputs.
         '''
+        
+        if VERBOSE:
+            print('Begin homing ...')
         
         # Label as busy
         GPIO.output(self.pin_out, self.BUSY)
@@ -244,12 +274,16 @@ class FilterWheel():
         
         # Label as ready
         GPIO.output(self.pin_out, self.STABLE)
+        if VERBOSE:
+            print('... Homing complete.')
     
     
     def goto(self, pos):
         '''
         Move the filter wheel to the commanded position. This issues STABLE/BUSY outputs.
         '''
+        if VERBOSE:
+            print('Request to goto position %i' % pos)
         
         assert np.isfinite(self.pos), "Need to home first"
                 
@@ -270,6 +304,8 @@ class FilterWheel():
         '''
         p0, p1 = GPIO.input(self.pin_in0), GPIO.input(self.pin_in1)
         filt = 2*p1 + 1*p0 # convert from binary
+        if VERBOSE:
+            print('Read filter request: filter %i ' % filt)
         
         return filt
         
@@ -294,6 +330,9 @@ class FilterWheel():
 
         #################################################
         if mode == 'active':
+            
+            if VERBOSE:
+                print('Beginning active mode loop')
             while(True):
 
                 # Read the input pins
@@ -330,6 +369,10 @@ class FilterWheel():
                 
         #################################################
         else: # mode is presumably an int
+            
+            if VERBOSE:
+                print('Beginning parked mode script')
+                
             # No infinite loop. Run once and terminate.
                         
             desired_pos = [self.filter0_pos,
@@ -341,6 +384,9 @@ class FilterWheel():
             
             # Label as permanently ready
             GPIO.output(self.pin_out, self.STABLE)
+            
+            if VERBOSE:
+                print('Ending parked mode script')
                 
             
             
@@ -355,6 +401,9 @@ if __name__ == '__main__':
         fw.run(mode=MODE)    
 
     except Exception as e:
+        
+        if VERBOSE:
+            print('FATAL ERROR: Terminating...\n\t%s' % e)
 
         # Fatal error. Label as busy until the system is restarted. 
         # We don't want FPI/Observatory to think everything is ok when it's not.
