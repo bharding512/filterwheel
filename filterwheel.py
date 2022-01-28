@@ -63,16 +63,16 @@ class HallEffectSensor():
         low. If this isn't the case, an Exception will be thrown as there's likely a fatal problem.
         '''
         p0, p1 = GPIO.input(self.pin0), GPIO.input(self.pin1)
-        if VERBOSE:
-            print('    Read hall effect sensor  p0=%i  p1=%i' % (p0, p1))
+        #if VERBOSE:
+        #    print('    Read hall effect sensor  p0=%i  p1=%i' % (p0, p1))
         
         # If there is a problem (i.e., if both are low or both are high), try again a few times
         Ntries = 0
         while ((p0 == p1) & (Ntries < 10)):
             p0, p1 = GPIO.input(self.pin0), GPIO.input(self.pin1)
             Ntries += 1
-            if VERBOSE:
-                print('    Re-read hall effect sensor due to error  p0=%i  p1=%i' % (p0, p1))
+            #if VERBOSE:
+            #    print('    Re-read hall effect sensor due to error  p0=%i  p1=%i' % (p0, p1))
         
         if Ntries > 10:
             raise Exception("Both Hall Effect sensor pins are %s. This probably indicates an electrical or software problem." % p0)
